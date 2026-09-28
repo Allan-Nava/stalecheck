@@ -1,22 +1,51 @@
 {
   "name": "@allan_nava/stalecheck",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Verifies that what the documentation says is still true: dead links, renamed files, line citations past the end, stale versions and facts dated long enough ago to be worth re-reading. Deterministic — no model, no network.",
   "type": "module",
-  "bin": { "stalecheck": "bin/stalecheck.mjs" },
-  "exports": { ".": "./lib/checks.mjs", "./scan": "./lib/scan.mjs", "./package.json": "./package.json" },
-  "files": ["bin/", "lib/", "README.md", "LICENSE"],
-  "engines": { "node": ">=18" },
-  "publishConfig": { "access": "public" },
+  "bin": {
+    "stalecheck": "bin/stalecheck.mjs"
+  },
+  "exports": {
+    ".": "./lib/checks.mjs",
+    "./scan": "./lib/scan.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "check": "node bin/stalecheck.mjs",
     "corpus": "node evals/corpus.mjs"
   },
-  "keywords": ["documentation", "docs", "lint", "dead-links", "stale", "markdown", "ci", "claude-code"],
+  "keywords": [
+    "documentation",
+    "docs",
+    "lint",
+    "dead-links",
+    "stale",
+    "markdown",
+    "ci",
+    "claude-code"
+  ],
   "license": "MIT",
   "author": "Allan Nava",
-  "repository": { "type": "git", "url": "git+https://github.com/Allan-Nava/stalecheck.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Allan-Nava/stalecheck.git"
+  },
   "homepage": "https://github.com/Allan-Nava/stalecheck#readme",
-  "bugs": { "url": "https://github.com/Allan-Nava/stalecheck/issues" }
+  "bugs": {
+    "url": "https://github.com/Allan-Nava/stalecheck/issues"
+  }
 }

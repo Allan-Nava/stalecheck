@@ -81,7 +81,31 @@ describe('lines — a citation past the end of the file', () => {
     withRepo({ 'README.md': 'Fixed in [config](src/a.mjs:99).', 'src/a.mjs': 'one\ntwo\n' }, (dir) => {
       const r = json(dir)
       assert.deepEqual(checksIn(r), ['lines'])
-      assert.match(r.findings[0].message, /has 3 lines/)
+      assert.match(r.findings[0].message, /has 2 lines/)
+    })
+  })
+
+  test('the line exactly past the end is past the end', () => {
+    // 'one\ntwo\n' is two lines. Counting the split parts made it look like three, so a
+    // citation to line 3 went unreported and the finding's own number was wrong.
+    withRepo({ 'README.md': 'Fixed in [config](src/a.mjs:3).', 'src/a.mjs': 'one\ntwo\n' }, (dir) => {
+      const r = json(dir)
+      assert.deepEqual(checksIn(r), ['lines'])
+      assert.match(r.findings[0].message, /has 2 lines/)
+    })
+  })
+
+  test('a file with no trailing newline counts its last line', () => {
+    withRepo({ 'README.md': 'Fixed in [config](src/a.mjs:2).', 'src/a.mjs': 'one\ntwo' }, (dir) => {
+      assert.deepEqual(json(dir).findings, [])
+    })
+  })
+
+  test('an empty file has no lines', () => {
+    withRepo({ 'README.md': 'Fixed in [config](src/a.mjs:1).', 'src/a.mjs': '' }, (dir) => {
+      const r = json(dir)
+      assert.deepEqual(checksIn(r), ['lines'])
+      assert.match(r.findings[0].message, /has 0 lines/)
     })
   })
 

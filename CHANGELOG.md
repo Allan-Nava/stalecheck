@@ -6,6 +6,16 @@ All notable changes to this project are documented here, in the format of
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-09-28
+
+### Fixed
+- **A file looked one line longer than it is.** A trailing newline terminates the last
+  line; counting the parts of `split('\n')` counted it as starting another. A `path:line`
+  citation one past the end of a file went unreported, and when `lines` did fire its count
+  was one too high. Three tests now cover the boundary: the line exactly past the end, a
+  file with no trailing newline, and an empty file.
+
+
 ## [0.1.0] — 2026-09-28
 
 The first release. Every default in it was chosen by running the checks over 639 real
@@ -44,5 +54,6 @@ documents in four repositories and reading what came back, not by taste.
 - `process.exit()` truncated a large JSON write to a pipe, which is how CI and the corpus
   runner both read it. The exit code is set instead, so Node flushes first.
 
-[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Allan-Nava/stalecheck/releases/tag/v0.1.0
