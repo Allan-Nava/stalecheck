@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test · node ${{ matrix.node }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22', '24']
+        os: [ubuntu-latest]
+        include:
+          # It shells out to git and resolves paths, so it is worth proving on the
+          # platform most of its users are actually on.
+          - node: '22'
+            os: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: git identity for the fixtures
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ci"
+          git config --global init.defaultBranch main
+      - run: npm test
+
+  dogfood:
+    name: dogfood
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      # A documentation checker whose own documentation is stale has no argument left.
+      - name: its own documentation
+        run: node bin/stalecheck.mjs
+
+  guards:
+    name: guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # It runs in CI and in editors. A dependency is a supply chain in that path.
+      - name: no dependencies at all
+        run: |
+          node -e '
+            const p = require("./package.json")
+            for (const k of ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"]) {
+              if (p[k] && Object.keys(p[k]).length) {
+                console.error(`package.json declares ${k}; stalecheck ships dependency-free`)
+                process.exit(1)
+              }
+            }
+            console.log("dependency-free")
+          '
+
+      # A run that finds nothing must exit 0, and a run that finds something must exit 1
+      # with its output intact. Both are the contract CI depends on.
+      - name: the exit contract
+        run: |
+          set -eu
+          tmp=$(mktemp -d); cd "$tmp"
+          git init -q; git config user.email ci@example.com; git config user.name ci
+          printf '# Fine\n\nNothing here.\n' > README.md
+          git add -A; git commit -qm fixture
+          if node "$GITHUB_WORKSPACE/bin/stalecheck.mjs" >/dev/null; then echo "ok   clean repo exits 0"; else echo "FAIL clean repo exited non-zero"; exit 1; fi
+          printf 'See [gone](docs/gone.md).\n' > README.md
+          if node "$GITHUB_WORKSPACE/bin/stalecheck.mjs" >/dev/null; then echo "FAIL a dead link exited 0"; exit 1; else echo "ok   a dead link exits 1"; fi
+
+      # process.exit() truncates a large stdout write to a pipe. This is the shape of
+      # the bug that caused it, run against a real pipe.
+      - name: large output survives a pipe
+        run: |
+          set -eu
+          tmp=$(mktemp -d); cd "$tmp"
+          git init -q; git config user.email ci@example.com; git config user.name ci
+          node -e 'require("fs").writeFileSync("README.md", Array.from({length:400},(_,i)=>`See [d ${i}](missing-${i}.md).`).join("\n\n"))'
+          git add -A; git commit -qm fixture
+          n=$(node "$GITHUB_WORKSPACE/bin/stalecheck.mjs" --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).findings.length))')
+          if [ "$n" = "400" ]; then echo "ok   400 findings through a pipe"; else echo "FAIL got $n findings, wanted 400"; exit 1; fi
+
+      - name: packs to what it claims
+        run: |
+          npm pack --dry-run --json > pack.json
+          node -e '
+            const files = require("./pack.json")[0].files.map((f) => f.path).sort()
+            const want = ["LICENSE", "README.md", "bin/stalecheck.mjs", "lib/checks.mjs", "lib/scan.mjs", "package.json"]
+            const same = files.length === want.length && files.every((f, i) => f === want[i])
+            if (!same) {
+              console.error("packed:", files.join(", "))
+              console.error("wanted:", want.join(", "))
+              process.exit(1)
+            }
+            console.log("packs:", files.join(", "))
+          '

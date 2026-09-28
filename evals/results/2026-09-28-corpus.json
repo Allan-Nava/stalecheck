@@ -1,0 +1,57 @@
+{
+  "at": "2026-09-28T12:46:58.721Z",
+  "node": "v23.3.0",
+  "checks": [
+    "paths",
+    "lines",
+    "anchors",
+    "scripts",
+    "versions",
+    "dated"
+  ],
+  "totals": {
+    "documents": 639,
+    "findings": 101,
+    "perDocument": 0.15805946791862285
+  },
+  "byCheck": {
+    "versions": 2,
+    "anchors": 40,
+    "paths": 55,
+    "lines": 4
+  },
+  "repositories": [
+    {
+      "name": "hookgate",
+      "documents": 15,
+      "findings": 2,
+      "byCheck": {
+        "versions": 2
+      }
+    },
+    {
+      "name": "claimcheck",
+      "documents": 3,
+      "findings": 0,
+      "byCheck": {}
+    },
+    {
+      "name": "crowdsim",
+      "documents": 27,
+      "findings": 2,
+      "byCheck": {
+        "anchors": 2
+      }
+    },
+    {
+      "name": "devops_hiway",
+      "documents": 594,
+      "findings": 97,
+      "byCheck": {
+        "anchors": 38,
+        "paths": 55,
+        "lines": 4
+      }
+    }
+  ]
+}

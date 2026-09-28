@@ -1,0 +1,198 @@
+name: Release
+
+# Cut a release by pushing the tag:
+#
+#   npm test && git tag -a v0.1.1 -m "stalecheck 0.1.1" && git push origin v0.1.1
+#
+# Everything after that happens here, with no npm token anywhere: the publish
+# authenticates through OIDC (npm Trusted Publishing), configured on the package
+# at npmjs.com against this repository and this workflow filename.
+#
+# DO NOT RENAME THIS FILE. The trusted publisher on npm is bound to the literal
+# name `release.yml`; rename it and the publish stops authenticating, with an
+# error that does not mention the filename.
+#
+# BOOTSTRAP: npm forbids configuring a trusted publisher for a package that does
+# not exist, so the very first version is published by hand — `npm login` then
+# `npm publish --access public` — and the trusted publisher is configured after
+# that. This job is rerun-safe and skips a version already on the registry, so it
+# can still cut the release for a version published that way.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, e.g. v0.1.0'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  PACKAGE: '@allan_nava/stalecheck'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write   # create the GitHub release
+      issues: write     # close the milestone
+      id-token: write   # OIDC: this is what authenticates the publish
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+
+      # No `registry-url`. It looks like the obvious thing to set, and it is the
+      # reason this job could not publish: setup-node then writes an .npmrc
+      # holding `_authToken=${NODE_AUTH_TOKEN}` and exports NODE_AUTH_TOKEN as a
+      # placeholder. npm finds a credential configured for the registry, so it
+      # never performs the OIDC exchange — it publishes with the placeholder, and
+      # npm answers 404 rather than 401 so as not to reveal whether the package
+      # exists. Trusted publishing needs *no* credential in the environment;
+      # registry.npmjs.org is already npm's default registry.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # The tag is the source of truth for what is being released; package.json
+      # must agree, and the changelog must document it.
+      - name: Resolve and verify the version
+        id: v
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          TAG_VERSION="${TAG#v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::tag $TAG says $TAG_VERSION but package.json says $PKG_VERSION"
+            exit 1
+          fi
+          if ! grep -q "^## \[$PKG_VERSION\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [$PKG_VERSION]' section"
+            exit 1
+          fi
+          echo "tag=$TAG"             >> "$GITHUB_OUTPUT"
+          echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+
+      # Trusted publishing needs npm >= 11.5.1 and Node 24 still bundles npm 10.
+      # Pinned on purpose: `npm@latest` would put a moving dependency in the
+      # publishing path, where a release can break because npm shipped last
+      # night. Bump this deliberately.
+      - name: Use an npm that speaks OIDC
+        run: |
+          npm install -g npm@11.19.0
+          npm --version
+
+      # No `npm install`: stalecheck has no dependencies at all, runtime or dev, so
+      # nothing is fetched and no lifecycle script runs beside a job that holds the
+      # OIDC publishing privilege.
+      - run: npm test
+
+      # No token: OIDC. Provenance is generated automatically for a public
+      # package published this way, so --provenance is not passed.
+      #
+      # Skipping an already-published version is what makes the bootstrap release
+      # work — see the note at the top of this file.
+      - name: Publish to npm
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          if [ "$(npm view "$PACKAGE@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "::notice::$PACKAGE@$VERSION is already on the registry — skipping publish"
+            exit 0
+          fi
+          # Belt and braces: nothing should be able to authenticate this publish
+          # except OIDC, not even a token someone reintroduces into the env. Note
+          # that unsetting it is not enough on its own — an .npmrc naming the
+          # variable counts as a configured credential even when it expands to
+          # nothing, which is why setup-node above is given no registry-url.
+          unset NODE_AUTH_TOKEN
+          # Verbose on purpose: at the default level a refused OIDC exchange ends in a
+          # bare ENEEDAUTH. At verbose npm prints the token exchange with the registry
+          # and why it failed — a publisher it cannot find, a claim that does not
+          # match — which is the only clue there is.
+          npm publish --access public --loglevel verbose
+
+      # The registry takes a moment to serve a freshly published version — over a
+      # minute has been seen. Twenty tries at 15 seconds: five minutes, and a rerun
+      # is cheap if the registry is slower still.
+      - name: Verify the published version
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          for i in $(seq 1 20); do
+            if [ "$(npm view "$PACKAGE@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+              echo "$PACKAGE@$VERSION is live after $i tries"; exit 0
+            fi
+            echo "not visible yet, retrying…"; sleep 15
+          done
+          echo "::error::$PACKAGE@$VERSION did not appear on the registry"
+          exit 1
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.v.outputs.tag }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          # Rerun-safe, like the publish step: a rerun that already got this far
+          # would otherwise die here on "release already exists".
+          if gh release view "$TAG" --json id --jq .id >/dev/null 2>&1; then
+            echo "::notice::release $TAG already exists — leaving it as it is"
+            exit 0
+          fi
+          gh release create "$TAG" --title "v$VERSION" --generate-notes --verify-tag
+          {
+            echo "## Install"
+            echo
+            echo '```'
+            echo "npm install -g $PACKAGE"
+            echo '```'
+            echo
+            echo "Run it in a repository, or add it to CI; the README has both."
+            echo
+            echo "Repo: https://github.com/Allan-Nava/stalecheck"
+            echo
+            echo "---"
+            echo
+            # The changelog section for this version, which says what changed and why.
+            awk -v v="$VERSION" '
+              $0 ~ "^## \\[" v "\\]" { on = 1; next }
+              on && /^## \[/ { exit }
+              on { print }
+            ' CHANGELOG.md
+            echo
+            echo "---"
+            echo
+            gh release view "$TAG" --json body --jq .body
+          } > /tmp/notes.md
+          gh release edit "$TAG" --notes-file /tmp/notes.md
+
+      # Only when it is actually finished — a milestone with open issues stays
+      # open, and says so in the log.
+      - name: Close the milestone
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          NUM=$(gh api "repos/$GITHUB_REPOSITORY/milestones?state=open" \
+                  --jq ".[] | select(.title | startswith(\"v$VERSION\")) | .number" | head -1)
+          if [ -z "$NUM" ]; then
+            echo "::notice::no open milestone titled v$VERSION — nothing to close"
+            exit 0
+          fi
+          OPEN=$(gh api "repos/$GITHUB_REPOSITORY/milestones/$NUM" --jq .open_issues)
+          if [ "$OPEN" != "0" ]; then
+            echo "::warning::milestone #$NUM still has $OPEN open issue(s) — leaving it open"
+            exit 0
+          fi
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/milestones/$NUM" -f state=closed \
+            --jq '"closed milestone: \(.title)"'
