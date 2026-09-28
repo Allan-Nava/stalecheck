@@ -6,6 +6,35 @@ All notable changes to this project are documented here, in the format of
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-28
+
+### Added
+- **`--baseline <file>`**, which is what makes the tool adoptable on the repositories that
+  most need it. Measured on a real 594-document tree stalecheck reports 96 findings, and
+  nobody switches on a gate that fails with 96 pre-existing problems — so until now it was
+  honest and unusable at the same time. The first run records what is already there and
+  exits 0; after that only findings that are **not** in the file fail the run.
+
+  It is a record, not a way to hide things:
+
+  - entries are keyed on the check, the document and the **subject** — the path, the
+    anchor, the script name. Never the line, which moves whenever anything above it is
+    edited, and never the message, because `dated` reports how many days ago and that
+    changes every night. Either would resurrect a known finding for nothing.
+  - a finding that has since been fixed is reported by name, and `--update-baseline`
+    drops it, so the file shrinks instead of being inherited
+  - writing is idempotent: a baseline that already records exactly these findings is left
+    untouched rather than restamped, so it never lands in a diff saying nothing
+  - a corrupt or future-format baseline reports everything rather than nothing — failing
+    open there would hide a whole repository behind a typo
+
+  `baseline` in `.stalecheck.json` names the file; `--json` carries the counts.
+
+### Changed
+- Every finding now carries a `subject`: the stable thing it is about, beside the message
+  that describes it. This is what the baseline keys on, and it is in the `--json` output.
+
+
 ## [0.1.3] — 2026-09-28
 
 ### Fixed
@@ -101,7 +130,8 @@ documents in four repositories and reading what came back, not by taste.
 - `process.exit()` truncated a large JSON write to a pipe, which is how CI and the corpus
   runner both read it. The exit code is set instead, so Node flushes first.
 
-[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.0...v0.1.1

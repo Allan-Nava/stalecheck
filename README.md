@@ -138,6 +138,7 @@ stalecheck --only paths,lines  # only these checks
 stalecheck --max-age 90        # a fact older than 90 days is stale
 stalecheck --json              # machine-readable, for CI
 stalecheck --warn              # report everything, always exit 0
+stalecheck --baseline <file>   # fail only on findings that are not already in <file>
 ```
 
 Exit code is 1 when anything is found, so it drops into CI as it is:
@@ -146,12 +147,39 @@ Exit code is 1 when anything is found, so it drops into CI as it is:
 - run: npx @allan_nava/stalecheck
 ```
 
+### Adopting it on documentation that is already stale
+
+A repository with a backlog does not get to start from zero. Measured on a real
+594-document tree, stalecheck reports 96 findings, and nobody switches on a gate that
+fails with 96 pre-existing problems.
+
+A baseline records what was already there, so the gate fails only on what is **new**:
+
+```bash
+stalecheck --baseline .stalecheck-baseline.json   # first run: records, exits 0
+stalecheck --baseline .stalecheck-baseline.json   # after that: fails only on new findings
+stalecheck --baseline .stalecheck-baseline.json --update-baseline   # drop what has been fixed
+```
+
+It is a record, not a way to hide things. Entries are keyed on the check, the document and
+the **subject** — the path, the anchor, the script name — never the line and never the
+message: a line moves whenever anything above it is edited, and `dated` reports how many
+days ago, which changes every night. Either would resurrect a known finding for nothing.
+
+A finding that has since been fixed is reported by name, so the file shrinks instead of
+being inherited. Writing is idempotent: a baseline that already records exactly these
+findings is left untouched rather than restamped, so it does not land in a diff saying
+nothing.
+
+Commit the file. On the 594-document tree it is 27 kB.
+
 Configuration is optional, in `.stalecheck.json` at the repository root:
 
 ```json
 {
   "checks": ["paths", "lines", "anchors", "dated"],
   "maxAgeDays": 90,
+  "baseline": ".stalecheck-baseline.json",
   "warn": false
 }
 ```
@@ -169,7 +197,7 @@ Configuration is optional, in `.stalecheck.json` at the repository root:
 ## Verify
 
 ```bash
-npm test                              # 50 assertions
+npm test                              # 63 assertions
 npm run corpus -- ~/projects/*        # what it says about your own documentation
 node bin/stalecheck.mjs --help
 ```
