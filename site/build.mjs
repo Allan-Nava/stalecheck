@@ -12,6 +12,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFi
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { marked } from 'marked'
+import { CHECKS } from '../lib/checks.mjs'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const OUT = join(ROOT, 'site', 'dist')
@@ -120,6 +121,40 @@ function scorecard() {
   </section>`
 }
 
+// The whole tool is one comparison — what a document claims against what the repository
+// holds — and the page asked a reader to assemble that from prose. The connector breaks
+// in the middle, which is the same idea the mark carries.
+const DIAGRAM = `
+<figure class="fig">
+<svg viewBox="0 0 760 232" role="img" aria-labelledby="figt" preserveAspectRatio="xMidYMid meet">
+  <title id="figt">A document links to docs/guide.md; the repository does not hold it, so the link breaks</title>
+  <g class="lbl"><text x="20" y="22">what the document claims</text><text x="440" y="22">what the repository holds</text></g>
+
+  <g class="box"><rect x="20" y="38" width="320" height="168" rx="10"/></g>
+  <text class="fn" x="38" y="64">README.md</text>
+  <g class="dim-line"><rect x="38" y="80" width="230" height="7" rx="3.5"/><rect x="38" y="98" width="180" height="7" rx="3.5"/></g>
+  <g class="chip"><rect x="38" y="119" width="236" height="32" rx="7"/></g>
+  <text class="mono" x="50" y="140">[the guide](docs/guide.md)</text>
+  <g class="dim-line"><rect x="38" y="166" width="252" height="7" rx="3.5"/></g>
+
+  <g class="box"><rect x="440" y="38" width="300" height="168" rx="10"/></g>
+  <text class="fn" x="458" y="64">the repository</text>
+  <text class="mono tree" x="458" y="92">docs/</text>
+  <text class="mono tree" x="474" y="116">reading.md</text>
+  <text class="mono tree" x="474" y="140">install.md</text>
+  <text class="mono gone" x="474" y="168">guide.md</text>
+  <line class="strike" x1="470" y1="163" x2="540" y2="163"/>
+
+  <g class="conn">
+    <path d="M286 135 L352 135"/>
+    <path d="M404 135 L434 135"/>
+  </g>
+  <circle class="dot" cx="434" cy="135" r="4.5"/>
+  <text class="gap" x="371" y="141">?</text>
+</svg>
+<figcaption>Every check is this comparison, on a different kind of claim.</figcaption>
+</figure>`
+
 // --- render ------------------------------------------------------------------
 
 const { lede, sections } = parse(readFileSync(join(ROOT, 'README.md'), 'utf8'))
@@ -149,10 +184,19 @@ function asTerminal(html) {
 
 const ledeHtml = asTerminal(linkifyPaths(marked.parse(withoutBadges)))
 
+// A check appears in the sample output, in "What it checks" and in the scorecard. One
+// hue each, in all three, is what connects them without a word of explanation — and the
+// name is always written out, so nothing rests on colour alone.
+const CHECK_NAMES = Object.keys(CHECKS)
+const tintChecks = (html) =>
+  html.replace(/<td><code>([a-z]+)<\/code><\/td>/g, (m, name) =>
+    CHECK_NAMES.includes(name) ? `<td><code class="ck ck-${name}">${name}</code></td>` : m,
+  )
+
 const rendered = sections.map((s) => ({
   title: s.title,
   id: slug(s.title),
-  html: `<section id="${slug(s.title)}"><h2><a class="anchor" href="#${slug(s.title)}">${esc(s.title)}</a></h2>${linkifyPaths(marked.parse(s.body))}</section>`,
+  html: `<section id="${slug(s.title)}"><h2><a class="anchor" href="#${slug(s.title)}">${esc(s.title)}</a></h2>${tintChecks(linkifyPaths(marked.parse(s.body)))}</section>`,
 }))
 
 // The scorecard goes straight after the section the README calls "Measured". Splicing
@@ -187,12 +231,18 @@ const html = `<!DOCTYPE html>
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://allan-nava.github.io/stalecheck/social-preview.png">
 <link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap">
 <style>
 :root{
   --bg:#fbfaf8; --fg:#1b1a18; --dim:#6a655e; --rule:#e3ded6;
   --accent:#2f5d8a; --card:#fff; --code:#f3f0ea;
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+  /* One face, for headings only. The body stays on the system stack: it is already fast
+     and readable, and a second download to restate that would be vanity. */
+  --display:"Instrument Serif",Georgia,"Times New Roman",serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#141312; --fg:#e8e4dd; --dim:#9a938a; --rule:#2c2a27;
@@ -208,7 +258,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--sans);-w
 header{border-bottom:1px solid var(--rule);padding:4rem 0 2.5rem}
 .brand{display:flex;align-items:center;gap:.7rem;margin-bottom:.4rem}
 .mark{flex:none}
-h1{font-size:2.6rem;margin:0;letter-spacing:-.02em}
+h1{font-family:var(--display);font-size:3.1rem;font-weight:400;margin:0;letter-spacing:-.01em;line-height:1}
 
 /* the sample output, framed as what it is */
 .term{border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--code);margin:1.2rem 0}
@@ -217,10 +267,48 @@ h1{font-size:2.6rem;margin:0;letter-spacing:-.02em}
 .term .bar span{margin-left:.5rem;font:500 .78rem var(--mono);color:var(--dim);letter-spacing:.02em}
 .term pre{margin:0;border:0;border-radius:0;background:none}
 .ck{font-weight:600}
-.ck-paths{color:#7fb0dd}.ck-lines{color:#8fbcbb}
-.ck-anchors{color:#b48ead}.ck-scripts{color:#a3be8c}
-.ck-versions{color:#d08770}.ck-dated{color:#ebcb8b}
-.ck-mentions{color:#88c0d0}.ck-programs{color:#bf616a}
+td > code.ck{background:color-mix(in srgb,currentColor 12%,transparent)}
+/* One hue per check, defined as tokens so the light theme can restate them: these are
+   chosen against a dark background and are too pale on white to read. */
+:root{
+  --ck-paths:#7fb0dd; --ck-lines:#8fbcbb; --ck-anchors:#b48ead; --ck-scripts:#a3be8c;
+  --ck-versions:#d08770; --ck-dated:#ebcb8b; --ck-mentions:#88c0d0; --ck-programs:#bf616a;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --ck-paths:#2f5d8a; --ck-lines:#2b6f6b; --ck-anchors:#7d4a86; --ck-scripts:#4a6d33;
+  --ck-versions:#a8532a; --ck-dated:#8a6410; --ck-mentions:#256b7d; --ck-programs:#a33a3a;
+}}
+:root[data-theme="light"]{
+  --ck-paths:#2f5d8a; --ck-lines:#2b6f6b; --ck-anchors:#7d4a86; --ck-scripts:#4a6d33;
+  --ck-versions:#a8532a; --ck-dated:#8a6410; --ck-mentions:#256b7d; --ck-programs:#a33a3a;
+}
+.ck-paths{color:var(--ck-paths)}.ck-lines{color:var(--ck-lines)}
+.ck-anchors{color:var(--ck-anchors)}.ck-scripts{color:var(--ck-scripts)}
+.ck-versions{color:var(--ck-versions)}.ck-dated{color:var(--ck-dated)}
+.ck-mentions{color:var(--ck-mentions)}.ck-programs{color:var(--ck-programs)}
+
+/* the one idea, drawn once */
+.fig{margin:1.8rem 0 0;padding:0}
+.fig svg{width:100%;height:auto;display:block}
+/* Below about 620px the 760-unit viewBox squeezes the labels under six pixels, which is
+   not a diagram any more. Let it keep its size and pan instead. */
+@media (max-width:620px){
+  .fig{overflow-x:auto;margin-inline:-16px;padding-inline:16px}
+  .fig svg{min-width:600px}
+}
+.fig figcaption{color:var(--dim);font-size:.85rem;margin-top:.5rem}
+.fig .lbl text{fill:var(--dim);font:500 12px var(--sans);letter-spacing:.06em;text-transform:uppercase}
+.fig .box rect{fill:var(--card);stroke:var(--rule);stroke-width:1}
+.fig .fn{fill:var(--fg);font:600 14px var(--sans)}
+.fig .mono{fill:var(--fg);font:13px var(--mono)}
+.fig .tree{fill:var(--dim)}
+.fig .gone{fill:var(--dim);opacity:.55}
+.fig .strike{stroke:var(--dim);stroke-width:1.5;opacity:.7}
+.fig .dim-line rect{fill:var(--rule)}
+.fig .chip rect{fill:color-mix(in srgb,var(--accent) 16%,transparent);stroke:color-mix(in srgb,var(--accent) 45%,transparent)}
+.fig .conn path{stroke:var(--accent);stroke-width:2.5;fill:none;stroke-linecap:round}
+.fig .dot{fill:var(--accent)}
+.fig .gap{fill:var(--dim);font:600 20px var(--sans)}
 
 /* the headline numbers, out of the tables */
 .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin:1.2rem 0 1.4rem}
@@ -231,12 +319,22 @@ h1{font-size:2.6rem;margin:0;letter-spacing:-.02em}
 .tag{color:var(--dim);font-size:1.05rem;margin:0}
 .lede{font-size:1.1rem;margin-top:1.6rem}
 .lede p:first-child{font-size:1.2rem}
-nav{display:flex;flex-wrap:wrap;gap:.25rem 1.1rem;padding:1rem 0;border-bottom:1px solid var(--rule);font-size:.9rem}
-nav a{color:var(--dim);text-decoration:none}
+.lede p:first-child strong{font-family:var(--display);font-weight:400;font-size:1.45rem;letter-spacing:-.005em}
+/* The page is about six thousand pixels tall. A nav that scrolls away leaves you with
+   no way back by the third section. */
+nav{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:.25rem 1.1rem;padding:.8rem 0;
+    border-bottom:1px solid var(--rule);font-size:.88rem;
+    background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);
+    margin:0 -16px;padding-left:16px;padding-right:16px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav a{color:var(--dim);text-decoration:none;white-space:nowrap;padding:.15rem 0;border-bottom:2px solid transparent}
 nav a:hover{color:var(--accent)}
+nav a.here{color:var(--fg);border-bottom-color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+section{scroll-margin-top:3.4rem}
 section{padding:2.4rem 0;border-bottom:1px solid var(--rule)}
 section:last-child{border-bottom:0}
-h2{font-size:1.5rem;margin:0 0 1rem;letter-spacing:-.01em}
+h2{font-family:var(--display);font-weight:400;font-size:2rem;margin:0 0 1rem;letter-spacing:-.005em;line-height:1.15}
 h3{font-size:1.05rem;margin:1.6rem 0 .6rem}
 a{color:var(--accent)}
 .anchor{color:inherit;text-decoration:none}
@@ -267,6 +365,7 @@ footer a{color:var(--dim)}
   <div class="brand">${logo}<h1>stalecheck</h1></div>
   <p class="tag">v${esc(pkg.version)} · <code>${esc(pkg.name)}</code> · MIT</p>
   <div class="lede">${ledeHtml}</div>
+  ${DIAGRAM}
   <div class="badges">
     <a href="${REPO}">GitHub</a>
     <a href="https://www.npmjs.com/package/${esc(pkg.name)}">npm</a>
@@ -276,6 +375,31 @@ footer a{color:var(--dim)}
 </header>
 <nav>${nav}</nav>
 ${parts.join('\n')}
+<script>
+// Marks the section you are in. IntersectionObserver rather than a scroll handler: it
+// does not run on every frame, and it degrades to a plain nav where it is unsupported.
+(function () {
+  var links = {}, nav = document.querySelector('nav')
+  if (!nav || !('IntersectionObserver' in window)) return
+  nav.querySelectorAll('a').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a })
+  var seen = new Set()
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { e.isIntersecting ? seen.add(e.target.id) : seen.delete(e.target.id) })
+    var ids = Object.keys(links).filter(function (id) { return seen.has(id) })
+    Object.values(links).forEach(function (a) { a.classList.remove('here') })
+    if (ids.length && links[ids[0]]) links[ids[0]].classList.add('here')
+  }, { rootMargin: '-20% 0px -70% 0px' })
+  document.querySelectorAll('section[id]').forEach(function (s) { io.observe(s) })
+  // The last section is short enough that the observation band never reaches it, so at
+  // the foot of the page the nav would point at whatever came before.
+  addEventListener('scroll', function () {
+    if (innerHeight + scrollY < document.body.scrollHeight - 4) return
+    var all = Object.values(links)
+    all.forEach(function (a) { a.classList.remove('here') })
+    if (all.length) all[all.length - 1].classList.add('here')
+  }, { passive: true })
+})()
+</script>
 <footer>
   Generated from <a href="${BLOB}/README.md">README.md</a> by
   <a href="${BLOB}/site/build.mjs">site/build.mjs</a>. The page has no prose of its own.
