@@ -91,9 +91,9 @@ jobs:
           npm install -g npm@11.19.0
           npm --version
 
-      # No `npm install`: stalecheck has no dependencies at all, runtime or dev, so
-      # nothing is fetched and no lifecycle script runs beside a job that holds the
-      # OIDC publishing privilege.
+      # No `npm install`: the only dependency is `marked`, a dev one used by the site
+      # generator, and the tests need nothing. Nothing is fetched and no lifecycle
+      # script runs beside a job that holds the OIDC publishing privilege.
       - run: npm test
 
       # No token: OIDC. Provenance is generated automatically for a public

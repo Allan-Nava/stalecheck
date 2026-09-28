@@ -1,5 +1,6 @@
 # stalecheck
 
+[![docs](https://img.shields.io/badge/docs-allan--nava.github.io%2Fstalecheck-2f5d8a?labelColor=1b1a18)](https://allan-nava.github.io/stalecheck/)
 [![CI](https://github.com/Allan-Nava/stalecheck/actions/workflows/ci.yml/badge.svg)](https://github.com/Allan-Nava/stalecheck/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/%40allan_nava%2Fstalecheck?color=2f5d8a&labelColor=1b1a18)](https://www.npmjs.com/package/@allan_nava/stalecheck)
 [![licence](https://img.shields.io/badge/license-MIT-2f5d8a?labelColor=1b1a18)](LICENSE)

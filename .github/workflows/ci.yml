@@ -76,11 +76,13 @@ jobs:
           node-version: '22'
 
       # It runs in CI and in editors. A dependency is a supply chain in that path.
-      - name: no dependencies at all
+      # `marked` is a dev dependency used only by the site generator and never reaches
+      # the tarball, which the pack guard below proves file by file.
+      - name: no runtime dependencies
         run: |
           node -e '
             const p = require("./package.json")
-            for (const k of ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"]) {
+            for (const k of ["dependencies", "peerDependencies", "optionalDependencies"]) {
               if (p[k] && Object.keys(p[k]).length) {
                 console.error(`package.json declares ${k}; stalecheck ships dependency-free`)
                 process.exit(1)

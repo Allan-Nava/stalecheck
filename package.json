@@ -26,7 +26,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "check": "node bin/stalecheck.mjs",
-    "corpus": "node evals/corpus.mjs"
+    "corpus": "node evals/corpus.mjs",
+    "build:site": "node site/build.mjs"
   },
   "keywords": [
     "documentation",
@@ -47,5 +48,8 @@
   "homepage": "https://github.com/Allan-Nava/stalecheck#readme",
   "bugs": {
     "url": "https://github.com/Allan-Nava/stalecheck/issues"
+  },
+  "devDependencies": {
+    "marked": "^16.4.0"
   }
 }
