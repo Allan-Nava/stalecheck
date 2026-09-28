@@ -141,7 +141,7 @@ jobs:
           npm pack --dry-run --json > pack.json
           node -e '
             const files = require("./pack.json")[0].files.map((f) => f.path).sort()
-            const want = ["LICENSE", "README.md", "bin/stalecheck.mjs", "lib/checks.mjs", "lib/scan.mjs", "package.json"]
+            const want = ["LICENSE", "README.md", "bin/stalecheck.mjs", "lib/baseline.mjs", "lib/checks.mjs", "lib/sarif.mjs", "lib/scan.mjs", "package.json"]
             const same = files.length === want.length && files.every((f, i) => f === want[i])
             if (!same) {
               console.error("packed:", files.join(", "))
