@@ -47,6 +47,25 @@ jobs:
       - name: its own documentation
         run: node bin/stalecheck.mjs
 
+  evals:
+    name: evals
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: git identity for the fixtures
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ci"
+          git config --global init.defaultBranch main
+
+      # Not a threshold, a record: the numbers land in the job log, so a change that
+      # makes a documentation sweep slower is visible in the diff of two runs.
+      - name: latency
+        run: node evals/bench.mjs --runs 3
+
   guards:
     name: guards
     runs-on: ubuntu-latest

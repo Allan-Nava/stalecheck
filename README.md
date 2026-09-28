@@ -77,6 +77,22 @@ Of the findings that survive, the ones worth the price: a config line cited at `
 five separate production runbooks when the file has 42 lines, and two documentation links
 pointing at sections that were renumbered.
 
+### Latency — `node evals/bench.mjs`
+
+It is meant to run in CI over a whole documentation tree, so what matters is how it
+scales and which check dominates.
+
+| corpus | p50 | marginal, per document |
+|---|---|---|
+| 10 documents | 73 ms | 2.51 ms |
+| 100 documents | 90 ms | 0.41 ms |
+| 500 documents | 150 ms | 0.20 ms |
+| a real 594-document repository | **456 ms** | 0.69 ms |
+
+Node's own startup is 48 ms of each, measured in the same run and reported beside them.
+`lines` is the most expensive check, because it opens every file a document cites;
+`dated` is the cheapest, because it never leaves the text.
+
 ## Install
 
 ```bash
