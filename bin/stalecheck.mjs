@@ -12,9 +12,11 @@
 
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { join, relative, resolve, sep } from 'node:path'
 import { CHECKS, checkDocument, repoContext } from '../lib/checks.mjs'
 import * as baseline from '../lib/baseline.mjs'
+import { matchesAny } from '../lib/glob.mjs'
+import { applyTo, proposeFix } from '../lib/fix.mjs'
 import { toSarif } from '../lib/sarif.mjs'
 
 
@@ -55,6 +57,8 @@ if (flag('help') || flag('h')) {
       '                       writes it, with everything found now, when it is not there',
       '  --update-baseline    rewrite it from this run, dropping what has been fixed',
       '  --sarif <file>       also write SARIF 2.1.0, for github/codeql-action/upload-sarif',
+      '  --fix                apply the findings that have exactly one right answer',
+      '  --dry-run            with --fix, say what it would change and change nothing',
       '',
     ].join('\n'),
   )
@@ -155,12 +159,19 @@ const warnOnly = flag('warn') || config.warn === true
 const baselinePath = value('baseline', config.baseline ?? null)
 const updateBaseline = flag('update-baseline')
 const sarifPath = value('sarif', config.sarif ?? null)
+const doFix = flag('fix')
+const dryRun = flag('dry-run')
+const ignore = [].concat(config.ignore ?? [])
+const historical = [].concat(config.historical ?? [])
 
 // --- run --------------------------------------------------------------------------
 
 const ctx = repoContext(root)
 const files = collect()
 const findings = []
+// Counted as they are read, not as they are found: an ignored document is not a document
+// this run has anything to say about, and reporting it as one overstates the sweep.
+let examined = 0
 
 for (const file of files) {
   let text
@@ -170,8 +181,13 @@ for (const file of files) {
   } catch {
     continue
   }
-  const rel = relative(root, file)
-  findings.push(...checkDocument(text, ctx, rel, { checks, dated: { maxAgeDays } }))
+  const rel = relative(root, file).split(sep).join('/')
+  // Vendored documentation, a generated API reference, a folder of working notes whose
+  // links are deliberately speculative: facts about this repository that no tool can
+  // infer, and that otherwise force a whole check off.
+  if (matchesAny(rel, ignore)) continue
+  examined++
+  findings.push(...checkDocument(text, ctx, rel, { checks, historical, dated: { maxAgeDays } }))
 }
 
 // --- the baseline ---------------------------------------------------------------------
@@ -217,7 +233,7 @@ if (asJson) {
       {
         at: new Date().toISOString(),
         root,
-        documents: files.length,
+        documents: examined,
         findings: shown,
         byCheck: Object.fromEntries(Object.entries(byCheck).map(([k, v]) => [k, v.length])),
         ...(baseState ? { baseline: { path: baselinePath, ...baseState, total: findings.length } } : {}),
@@ -239,7 +255,7 @@ if (asJson) {
   if (!quiet && !baseState?.wrote) {
     const ran = checks ?? Object.entries(CHECKS).filter(([, c]) => c.default).map(([k]) => k)
     const label = baseState ? 'new finding' : 'finding'
-    process.stdout.write(`\n${files.length} document${files.length === 1 ? '' : 's'}, ${shown.length} ${label}${shown.length === 1 ? '' : 's'}`)
+    process.stdout.write(`\n${examined} document${examined === 1 ? '' : 's'}, ${shown.length} ${label}${shown.length === 1 ? '' : 's'}`)
     process.stdout.write(shown.length ? ` — ${Object.entries(byCheck).map(([k, v]) => `${k} ${v.length}`).join(', ')}\n` : '\n')
     if (baseState) {
       process.stdout.write(`${baseState.known} already in ${baselinePath}, recorded ${String(baseState.since).slice(0, 10)}\n`)
@@ -257,6 +273,50 @@ if (asJson) {
 // Not process.exit(): it tears the process down before a large stdout write has flushed
 // to a pipe, which silently truncated the JSON for any consumer reading it — a CI job,
 // or evals/corpus.mjs. Setting the code lets Node exit once the write completes.
+// --- --fix -----------------------------------------------------------------------------
+// Only where there is exactly one right answer; everything else is reported and left.
+
+if (doFix && shown.length) {
+  const edits = shown.map((f) => proposeFix(f, ctx)).filter(Boolean)
+  const byFile = new Map()
+  for (const e of edits) {
+    if (!byFile.has(e.file)) byFile.set(e.file, [])
+    byFile.get(e.file).push(e)
+  }
+  let changed = 0
+  let touched = 0
+  for (const [file, list] of byFile) {
+    const full = join(root, file)
+    let before
+    try {
+      before = readFileSync(full, 'utf8')
+    } catch {
+      continue
+    }
+    const { text, applied } = applyTo(before, list)
+    if (!applied || text === before) continue
+    if (!dryRun) {
+      try {
+        writeFileSync(full, text)
+      } catch (e) {
+        process.stderr.write(`stalecheck: could not write ${file}: ${e.message}\n`)
+        continue
+      }
+    }
+    changed += applied
+    touched++
+  }
+  if (!asJson) {
+    const verb = dryRun ? 'would change' : 'changed'
+    process.stdout.write(`\n${verb} ${changed} finding${changed === 1 ? '' : 's'} in ${touched} document${touched === 1 ? '' : 's'}`)
+    process.stdout.write(edits.length < shown.length ? `; ${shown.length - edits.length} had no single right answer and ${dryRun ? 'would be' : 'were'} left alone\n` : '\n')
+    for (const e of edits.slice(0, 20)) process.stdout.write(`  ${e.file}:${e.line}  ${e.from}  ->  ${e.to}\n`)
+    if (edits.length > 20) process.stdout.write(`  …and ${edits.length - 20} more\n`)
+  }
+  // What was fixed is no longer a finding to fail on; what was left alone still is.
+  if (!dryRun) shown = shown.filter((f) => !edits.includes(f) && !edits.some((e) => e.check === f.check && e.file === f.file && e.line === f.line))
+}
+
 // SARIF is written beside whatever else the run reports, so a CI job can annotate the
 // diff and still read the human output in its log.
 if (sarifPath) {

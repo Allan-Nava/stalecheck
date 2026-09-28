@@ -38,6 +38,7 @@ docs/deploy/topology.md
 | `versions` | the package's own version, quoted stale | on |
 | `dated` | a fact dated long enough ago to be worth re-reading | on |
 | `mentions` | a backticked path that is not there | **off** |
+| `fences` | a fenced `json` block that does not parse | on |
 | `programs` | a command not on `PATH` or in the repository | **off** |
 
 Everything else is silence. A check that cannot establish the truth reports nothing.
@@ -144,6 +145,7 @@ stalecheck --json              # machine-readable, for CI
 stalecheck --warn              # report everything, always exit 0
 stalecheck --baseline <file>   # fail only on findings that are not already in <file>
 stalecheck --sarif <file>      # also write SARIF 2.1.0, for GitHub code scanning
+stalecheck --fix               # apply the findings that have exactly one right answer
 ```
 
 Exit code is 1 when anything is found, so it drops into CI as it is:
@@ -177,6 +179,43 @@ stays in the file where it belongs.
 
 This project's own CI uploads its own SARIF, which is the only way to know GitHub accepts
 the document rather than rendering nothing in silence.
+
+### Fixing what has exactly one right answer
+
+```bash
+stalecheck --fix            # apply them
+stalecheck --fix --dry-run  # say what it would change, change nothing
+```
+
+Three findings have an answer nobody has to guess at: an anchor whose heading was
+renumbered when exactly one heading is a near-match, this package's own version, which
+`package.json` states, and a path when exactly one file in the repository carries that
+name.
+
+**Exactly one** is the whole rule. Two headings that both nearly match, or a filename that
+exists in three directories, is reported and left alone — rewriting documentation on a
+guess is worse than reporting it, because a report is read and a guess is not. Only the
+line that was reported is rewritten, never every occurrence in the file.
+
+### Telling it about this repository
+
+`.stalecheck.json` takes two things a tool cannot infer:
+
+```json
+{
+  "ignore": ["third-party/**", "docs/generated/**"],
+  "historical": ["docs/incidents/**", "reports/**"]
+}
+```
+
+`ignore` is documentation that should not be read at all — vendored, generated, or a
+folder of working notes whose links are deliberately speculative. An ignored document is
+not counted in the sweep either.
+
+`historical` is documentation that records the past, where a file it names may be
+legitimately gone. `CHANGELOG`, `HISTORY` and `RELEASES` are always historical; this adds
+to that list and never replaces it. Anchors are still checked in those documents, because
+a dead link is dead whoever wrote it.
 
 ### Adopting it on documentation that is already stale
 
@@ -228,7 +267,7 @@ Configuration is optional, in `.stalecheck.json` at the repository root:
 ## Verify
 
 ```bash
-npm test                              # 71 assertions
+npm test                              # 104 assertions
 npm run corpus -- ~/projects/*        # what it says about your own documentation
 node bin/stalecheck.mjs --help
 ```
