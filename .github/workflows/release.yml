@@ -121,14 +121,16 @@ jobs:
           # match — which is the only clue there is.
           npm publish --access public --loglevel verbose
 
-      # The registry takes a moment to serve a freshly published version — over a
-      # minute has been seen. Twenty tries at 15 seconds: five minutes, and a rerun
-      # is cheap if the registry is slower still.
+      # The registry takes a while to serve a freshly published version. Five minutes
+      # was not enough on 2026-09-28 for 0.2.0: the publish succeeded, this step timed
+      # out, and the release and milestone steps were skipped behind it. Forty tries at
+      # 15 seconds is ten minutes, and the publish step above skips a version already on
+      # the registry, so a rerun costs nothing.
       - name: Verify the published version
         env:
           VERSION: ${{ steps.v.outputs.version }}
         run: |
-          for i in $(seq 1 20); do
+          for i in $(seq 1 40); do
             if [ "$(npm view "$PACKAGE@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
               echo "$PACKAGE@$VERSION is live after $i tries"; exit 0
             fi
