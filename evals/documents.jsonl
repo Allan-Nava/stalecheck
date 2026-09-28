@@ -57,3 +57,16 @@
 {"name": "an anchor with trailing punctuation in the heading", "files": {"a.md": "See [q](b.md#why-not).", "b.md": "## Why not?\n"}, "expect": []}
 {"name": "a code span delimited by two backticks", "files": {"README.md": "Write it as ``[x](gone.md)`` in the source."}, "expect": []}
 {"name": "a code span containing a backtick", "files": {"README.md": "The form is `` `[x](gone.md)` `` in Markdown."}, "expect": []}
+{"name": "a json fence with a trailing comma", "files": {"README.md": "```json\n{ \"checks\": [\"paths\",], \"maxAge\": 90 }\n```\n"}, "expect": [{"check": "fences", "file": "README.md", "line": 2}]}
+{"name": "a json fence that parses", "files": {"README.md": "```json\n{ \"a\": 1, \"b\": [2, 3] }\n```\n"}, "expect": []}
+{"name": "an object excerpt, shown without its braces", "files": {"README.md": "```json\n\"safety\": { \"allow_hosts\": [\"a\"], \"peak\": 120 }\n```\n"}, "expect": []}
+{"name": "an excerpt ending in a comma", "files": {"README.md": "```json\n\"A\": \"1\",\n\"B\": \"2\",\n```\n"}, "expect": []}
+{"name": "an ellipsis is a fragment", "files": {"README.md": "```json\n{ \"checks\": [\"paths\", ...] }\n```\n"}, "expect": []}
+{"name": "json lines, one object per line", "files": {"README.md": "```json\n{ \"n\": \"a\" }\n{ \"n\": \"b\" }\n```\n"}, "expect": []}
+{"name": "json lines with a record over several lines", "files": {"README.md": "```json\n{ \"n\": \"a\" }\n{ \"n\": \"b\",\n  \"deep\": { \"x\": 1 } }\n```\n"}, "expect": []}
+{"name": "a comment naming the file above valid json", "files": {"README.md": "```json\n// /etc/docker/daemon.json\n{ \"log-driver\": \"json-file\" }\n```\n"}, "expect": []}
+{"name": "a comment above json that is still broken", "files": {"README.md": "```json\n// /etc/x.json\n{ \"a\": 1,, }\n```\n"}, "expect": [{"check": "fences", "file": "README.md", "line": 3}]}
+{"name": "jsonc allows comments and a trailing comma", "files": {"README.md": "```jsonc\n{\n  // a note\n  \"checks\": [\"paths\"],\n}\n```\n"}, "expect": []}
+{"name": "jsonc that is broken anyway", "files": {"README.md": "```jsonc\n{ \"a\": [1, 2 }\n```\n"}, "expect": [{"check": "fences", "file": "README.md", "line": 2}]}
+{"name": "yaml is left alone", "files": {"README.md": "```yaml\na: [unclosed\n```\n"}, "expect": []}
+{"name": "an unlabelled fence is left alone", "files": {"README.md": "```\n{ not json at all\n```\n"}, "expect": []}

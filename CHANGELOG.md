@@ -6,6 +6,51 @@ All notable changes to this project are documented here, in the format of
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-28
+
+The last three items in the v0.2.0 milestone.
+
+### Added
+- **`--fix`**, for the findings that have exactly one right answer: an anchor whose
+  heading was renumbered when exactly one heading is a near-match, this package's own
+  version, which `package.json` states, and a path when exactly one file in the repository
+  carries that name. `--fix --dry-run` says what it would change and changes nothing.
+
+  **Exactly one** is the whole rule. Two headings that both nearly match, or a filename in
+  three directories, is reported and left alone: rewriting documentation on a guess is
+  worse than reporting it, because a report is read and a guess is not. Only the line that
+  was reported is rewritten, never every occurrence in the file.
+
+- **`fences`**, on by default: a fenced `json` or `jsonc` block that does not parse, which
+  a reader discovers by pasting it. It took four measured passes to make it precise — on
+  two real repositories the first draft fired 22 times and every one was a convention
+  rather than a defect:
+
+  - an object shown **without its enclosing braces**, which is how you document one key
+  - **JSON Lines**, including a record spanning several lines
+  - a `//` comment **naming the file** the block belongs in
+  - an excerpt **ending in a comma**, which is the mark of an excerpt and not an error
+
+  All four are recognised now; it reports nothing across 637 real documents and still
+  catches a trailing comma inside a block. `json` forgives a comment but never a trailing
+  comma — forgiving that in the first draft forgave the very error the check exists to
+  find, and the fixture caught it.
+
+  YAML is not checked. A parser for it is not something to write without a dependency, and
+  this package has none, so `yaml` blocks are left alone rather than half-checked.
+
+- **`ignore` and `historical`** in `.stalecheck.json`, both glob patterns, matched by a
+  small matcher written here rather than taken as a dependency. `ignore` is documentation
+  that should not be read at all; `historical` is documentation that records the past,
+  where a named file may be legitimately gone. `CHANGELOG`, `HISTORY` and `RELEASES` stay
+  historical whatever is configured, and anchors are still checked in those documents,
+  because a dead link is dead whoever wrote it.
+
+### Fixed
+- An ignored document was still counted in the sweep, so a run said it had examined three
+  documents when it had read two.
+
+
 ## [0.3.0] — 2026-09-28
 
 ### Added
@@ -158,7 +203,8 @@ documents in four repositories and reading what came back, not by taste.
 - `process.exit()` truncated a large JSON write to a pipe, which is how CI and the corpus
   runner both read it. The exit code is set instead, so Node flushes first.
 
-[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.2...v0.1.3
