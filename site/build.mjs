@@ -339,9 +339,9 @@ h3{font-size:1.05rem;margin:1.6rem 0 .6rem}
 a{color:var(--accent)}
 .anchor{color:inherit;text-decoration:none}
 .anchor:hover{color:var(--accent)}
-code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.12em .36em;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.12em .36em;border-radius:4px;overflow-wrap:anywhere}
 pre{background:var(--code);padding:1rem;border-radius:8px;overflow-x:auto;border:1px solid var(--rule)}
-pre code{background:none;padding:0;font-size:.85rem;line-height:1.55}
+pre code{background:none;padding:0;font-size:.85rem;line-height:1.55;overflow-wrap:normal}
 table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.92rem}
 th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--rule);vertical-align:top}
 th{font-weight:600;color:var(--dim);font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
