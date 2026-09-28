@@ -169,7 +169,7 @@ Configuration is optional, in `.stalecheck.json` at the repository root:
 ## Verify
 
 ```bash
-npm test                              # 47 assertions
+npm test                              # 50 assertions
 npm run corpus -- ~/projects/*        # what it says about your own documentation
 node bin/stalecheck.mjs --help
 ```

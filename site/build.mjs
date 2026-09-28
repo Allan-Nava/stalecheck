@@ -108,18 +108,36 @@ function scorecard() {
 
 const { lede, sections } = parse(readFileSync(join(ROOT, 'README.md'), 'utf8'))
 
-// The lede's first paragraph is the tagline; the code block after it is the sample block.
-const ledeHtml = linkifyPaths(marked.parse(lede))
-
-const nav = sections.map((s) => `<a href="#${slug(s.title)}">${esc(s.title)}</a>`).join('')
-const body = sections
-  .map((s) => `<section id="${slug(s.title)}"><h2><a class="anchor" href="#${slug(s.title)}">${esc(s.title)}</a></h2>${linkifyPaths(marked.parse(s.body))}</section>`)
+// The README's badge block is four linked images on consecutive lines. The page builds
+// its own row from them, so the originals are dropped rather than rendered twice — they
+// came out as a strip of shields wedged into the opening paragraph.
+const withoutBadges = lede
+  .split('\n')
+  .filter((line) => !/^\s*(?:\[!\[[^\]]*\]\([^)]*\)\]\([^)]*\)\s*)+$/.test(line))
   .join('\n')
+  .trim()
+const ledeHtml = linkifyPaths(marked.parse(withoutBadges))
 
-// The scorecard goes straight after the section the README calls "Measured".
-const measuredAt = sections.findIndex((s) => s.title.toLowerCase() === 'measured')
-const parts = body.split('\n')
-if (measuredAt >= 0) parts.splice(measuredAt + 1, 0, scorecard())
+const rendered = sections.map((s) => ({
+  title: s.title,
+  id: slug(s.title),
+  html: `<section id="${slug(s.title)}"><h2><a class="anchor" href="#${slug(s.title)}">${esc(s.title)}</a></h2>${linkifyPaths(marked.parse(s.body))}</section>`,
+}))
+
+// The scorecard goes straight after the section the README calls "Measured". Splicing
+// into the list of sections, not into the lines of their concatenated HTML: the earlier
+// version split on newlines and inserted the card partway through the first section,
+// which emptied that section's heading and spilled the card's table out of its box.
+const card = scorecard()
+const measuredAt = rendered.findIndex((s) => s.title.toLowerCase() === 'measured')
+if (card && measuredAt >= 0) {
+  rendered.splice(measuredAt + 1, 0, { title: 'The last measured run', id: 'measured-run', html: card })
+} else if (card) {
+  rendered.push({ title: 'The last measured run', id: 'measured-run', html: card })
+}
+
+const nav = rendered.map((s) => `<a href="#${s.id}">${esc(s.title)}</a>`).join('')
+const parts = rendered.map((s) => s.html)
 
 const html = `<!DOCTYPE html>
 <html lang="en">
