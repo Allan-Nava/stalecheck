@@ -309,7 +309,10 @@ if (doFix && shown.length) {
   if (!asJson) {
     const verb = dryRun ? 'would change' : 'changed'
     process.stdout.write(`\n${verb} ${changed} finding${changed === 1 ? '' : 's'} in ${touched} document${touched === 1 ? '' : 's'}`)
-    process.stdout.write(edits.length < shown.length ? `; ${shown.length - edits.length} had no single right answer and ${dryRun ? 'would be' : 'were'} left alone\n` : '\n')
+    const left = shown.length - edits.length
+    process.stdout.write(
+      left ? `; ${left} had no single right answer and ${dryRun ? 'would be' : left === 1 ? 'was' : 'were'} left alone\n` : '\n',
+    )
     for (const e of edits.slice(0, 20)) process.stdout.write(`  ${e.file}:${e.line}  ${e.from}  ->  ${e.to}\n`)
     if (edits.length > 20) process.stdout.write(`  …and ${edits.length - 20} more\n`)
   }
