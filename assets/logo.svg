@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="stalecheck">
+  <title>stalecheck</title>
+  <!-- A check mark that does not close: the hook and the rise are drawn, then the stroke
+       stops and the tip stands apart. A verification that no longer holds, in one shape
+       that survives being 16 pixels wide. -->
+  <g fill="none" stroke="#2f5d8a" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 33 L26 46 L34 37" />
+    <path d="M41 29 L52 17" />
+  </g>
+</svg>

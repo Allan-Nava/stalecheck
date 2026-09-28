@@ -27,7 +27,8 @@
     "test": "node --test test/*.test.mjs",
     "check": "node bin/stalecheck.mjs",
     "corpus": "node evals/corpus.mjs",
-    "build:site": "node site/build.mjs"
+    "build:site": "node site/build.mjs",
+    "build:social": "node site/social.mjs"
   },
   "keywords": [
     "documentation",

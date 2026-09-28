@@ -8,7 +8,7 @@
 // `marked` is a devDependency used only here; the published package stays
 // dependency-free.
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { marked } from 'marked'
@@ -16,6 +16,9 @@ import { marked } from 'marked'
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const OUT = join(ROOT, 'site', 'dist')
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
+// The mark is inlined so the header paints in one request, and copied to dist as well
+// because the favicon and the social card reference it by URL.
+const logo = readFileSync(join(ROOT, 'assets', 'logo.svg'), 'utf8').replace(/<\?xml[^>]*\?>/, '').replace(/width="64" height="64"/, 'width="42" height="42" class="mark"').trim()
 const REPO = 'https://github.com/Allan-Nava/stalecheck'
 const BLOB = `${REPO}/blob/main`
 
@@ -87,10 +90,23 @@ function scorecard() {
   const when = (corpus ?? bench).data.at.slice(0, 10)
   const node = (corpus ?? bench).data.node
 
+  // The headline numbers are the whole case for trusting any of this, and until now they
+  // were cells in a table a reader had to parse. The tables stay underneath.
+  const accuracy = newest('-accuracy.json')
+  const realRun = bench?.data.real
+  const tiles = [
+    corpus && [corpus.data.totals.documents.toLocaleString('en-US'), 'documents measured'],
+    accuracy && [`${(100 * (accuracy.data.totals.tp / Math.max(1, accuracy.data.totals.tp + accuracy.data.totals.fp))).toFixed(0)}%`, `precision, ${accuracy.data.fixtures} fixtures`],
+    realRun && [`${realRun.p50.toFixed(0)} ms`, `a ${realRun.documents}-document sweep`],
+    ['0', 'dependencies'],
+  ].filter(Boolean)
+  const tileHtml = `<div class="tiles">${tiles.map(([n, l]) => `<div class="tile"><div class="n">${esc(n)}</div><div class="l">${esc(l)}</div></div>`).join('')}</div>`
+
   return `
   <section id="measured-run">
     <h2><a class="anchor" href="#measured-run">The last measured run</a></h2>
     <p>Read off <a href="${BLOB}/evals/results">evals/results</a>, not written by hand — ${esc(when)}, Node ${esc(node)}.</p>
+    ${tileHtml}
     <div class="cards">
       ${corpus ? `<div class="card">
         <h3>What it finds <span class="dim">the checks that are on by default</span></h3>
@@ -116,7 +132,22 @@ const withoutBadges = lede
   .filter((line) => !/^\s*(?:\[!\[[^\]]*\]\([^)]*\)\]\([^)]*\)\s*)+$/.test(line))
   .join('\n')
   .trim()
-const ledeHtml = linkifyPaths(marked.parse(withoutBadges))
+// The fastest way to understand the tool is four lines of its output, which the lede
+// already carries — as one of eight identical <pre> blocks, with nothing saying this one
+// is the point. The first block in the lede gets window chrome and the check names in
+// colour. It is the same text, doing more work.
+const CHECK_TINT = /^(\s*\d+\s+)(paths|lines|anchors|scripts|versions|dated|mentions|programs)(\s)/gm
+function asTerminal(html) {
+  let done = false
+  return html.replace(/<pre>([\s\S]*?)<\/pre>/, (m, inner) => {
+    if (done) return m
+    done = true
+    const tinted = inner.replace(CHECK_TINT, (_, n, check, tail) => `${n}<span class="ck ck-${check}">${check}</span>${tail}`)
+    return `<div class="term"><div class="bar"><i></i><i></i><i></i><span>stalecheck</span></div><pre>${tinted}</pre></div>`
+  })
+}
+
+const ledeHtml = asTerminal(linkifyPaths(marked.parse(withoutBadges)))
 
 const rendered = sections.map((s) => ({
   title: s.title,
@@ -149,7 +180,13 @@ const html = `<!DOCTYPE html>
 <meta property="og:title" content="stalecheck">
 <meta property="og:description" content="${esc(pkg.description)}">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='13'%3E%E2%9C%93%3C/text%3E%3C/svg%3E">
+<meta property="og:url" content="https://allan-nava.github.io/stalecheck/">
+<meta property="og:image" content="https://allan-nava.github.io/stalecheck/social-preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://allan-nava.github.io/stalecheck/social-preview.png">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <style>
 :root{
   --bg:#fbfaf8; --fg:#1b1a18; --dim:#6a655e; --rule:#e3ded6;
@@ -169,7 +206,28 @@ const html = `<!DOCTYPE html>
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
 .wrap{max-width:52rem;margin:0 auto;padding:0 16px}
 header{border-bottom:1px solid var(--rule);padding:4rem 0 2.5rem}
-h1{font-size:2.6rem;margin:0 0 .4rem;letter-spacing:-.02em}
+.brand{display:flex;align-items:center;gap:.7rem;margin-bottom:.4rem}
+.mark{flex:none}
+h1{font-size:2.6rem;margin:0;letter-spacing:-.02em}
+
+/* the sample output, framed as what it is */
+.term{border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--code);margin:1.2rem 0}
+.term .bar{display:flex;align-items:center;gap:.4rem;padding:.55rem .8rem;border-bottom:1px solid var(--rule);background:color-mix(in srgb,var(--code) 70%,var(--bg))}
+.term .bar i{width:10px;height:10px;border-radius:50%;background:var(--rule)}
+.term .bar span{margin-left:.5rem;font:500 .78rem var(--mono);color:var(--dim);letter-spacing:.02em}
+.term pre{margin:0;border:0;border-radius:0;background:none}
+.ck{font-weight:600}
+.ck-paths{color:#7fb0dd}.ck-lines{color:#8fbcbb}
+.ck-anchors{color:#b48ead}.ck-scripts{color:#a3be8c}
+.ck-versions{color:#d08770}.ck-dated{color:#ebcb8b}
+.ck-mentions{color:#88c0d0}.ck-programs{color:#bf616a}
+
+/* the headline numbers, out of the tables */
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin:1.2rem 0 1.4rem}
+@media(min-width:44rem){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:.85rem 1rem}
+.tile .n{font-size:1.65rem;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.tile .l{color:var(--dim);font-size:.8rem;margin-top:.15rem}
 .tag{color:var(--dim);font-size:1.05rem;margin:0}
 .lede{font-size:1.1rem;margin-top:1.6rem}
 .lede p:first-child{font-size:1.2rem}
@@ -206,7 +264,7 @@ footer a{color:var(--dim)}
 <body>
 <div class="wrap">
 <header>
-  <h1>stalecheck</h1>
+  <div class="brand">${logo}<h1>stalecheck</h1></div>
   <p class="tag">v${esc(pkg.version)} · <code>${esc(pkg.name)}</code> · MIT</p>
   <div class="lede">${ledeHtml}</div>
   <div class="badges">
@@ -230,4 +288,9 @@ ${parts.join('\n')}
 mkdirSync(OUT, { recursive: true })
 writeFileSync(join(OUT, 'index.html'), html)
 writeFileSync(join(OUT, '.nojekyll'), '')
+for (const asset of ['logo.svg', 'social-preview.png']) {
+  const from = join(ROOT, 'assets', asset)
+  if (existsSync(from)) copyFileSync(from, join(OUT, asset))
+  else console.warn(`build:site: assets/${asset} is missing — the page references it`)
+}
 console.log(`wrote ${join(OUT, 'index.html')} — ${(html.length / 1024).toFixed(1)} kB, ${sections.length} sections from README.md`)
