@@ -6,6 +6,34 @@ All notable changes to this project are documented here, in the format of
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-09-28
+
+### Added
+- **`--sarif <file>`**, so findings land on the pull request diff instead of in a log
+  nobody scrolls back to. SARIF 2.1.0, read by `github/codeql-action/upload-sarif`.
+
+  - each result carries a `partialFingerprint` built from the check, the document and the
+    subject, so GitHub treats a finding that has moved down a file as the one it already
+    knows rather than as a new one — the same reason the baseline keys on the subject
+  - only the checks that produced something are declared as rules: a rule with no results
+    still appears in GitHub's list and invites questions about a check that never ran
+  - locations are repository-relative with no `uriBaseId`. The first draft declared
+    `%SRCROOT%` without an `originalUriBaseIds` to resolve it, which is a base the
+    consumer cannot follow
+  - everything is `warning`. A finding is a fact; how much it matters is the repository's
+    call, and a tool that decides that for you gets switched off
+  - with a baseline in use, the new findings are what gets published
+
+  This project's own CI now uploads its own SARIF. An invalid document fails that step,
+  which is the only way to know GitHub accepts it rather than rendering nothing in
+  silence.
+
+### Changed
+- Each check carries its own short and long description, and the CLI help and the SARIF
+  rules both read them from there. They were duplicated in the CLI, with nothing keeping
+  the two in step.
+
+
 ## [0.2.0] — 2026-09-28
 
 ### Added
@@ -130,7 +158,8 @@ documents in four repositories and reading what came back, not by taste.
 - `process.exit()` truncated a large JSON write to a pipe, which is how CI and the corpus
   runner both read it. The exit code is set instead, so Node flushes first.
 
-[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.1...v0.1.2

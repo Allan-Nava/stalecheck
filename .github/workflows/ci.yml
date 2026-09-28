@@ -38,14 +38,28 @@ jobs:
   dogfood:
     name: dogfood
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload-sarif
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
+
       # A documentation checker whose own documentation is stale has no argument left.
       - name: its own documentation
-        run: node bin/stalecheck.mjs
+        run: node bin/stalecheck.mjs --sarif stalecheck.sarif
+
+      # The only way to know GitHub accepts the SARIF is to hand it some. An invalid
+      # document fails this step rather than rendering nothing in silence, which is what
+      # it would do on a repository that trusted it untested.
+      - name: upload it
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: stalecheck.sarif
+          category: stalecheck
 
   evals:
     name: evals

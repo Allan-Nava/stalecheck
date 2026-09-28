@@ -11,24 +11,15 @@
 // Deterministic: no model, no network. It never runs a command it finds in a document.
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { CHECKS, checkDocument, repoContext } from '../lib/checks.mjs'
 import * as baseline from '../lib/baseline.mjs'
+import { toSarif } from '../lib/sarif.mjs'
 
-const DESCRIPTIONS = {
-  paths: 'a link to a file that does not exist',
-  mentions: 'a backticked path that does not exist (noisy: names conventions too)',
-  lines: 'a path:line citation past the end of the file',
-  anchors: 'a #anchor link with no heading behind it',
-  scripts: 'an npm script the manifest has not got',
-  versions: "the package's own version, quoted stale",
-  dated: 'a fact dated long enough ago to be worth re-reading',
-  programs: 'a command that is not on PATH or in the repository',
-}
 
 const argv = process.argv.slice(2)
-const TAKES_VALUE = new Set(['only', 'max-age', 'baseline'])
+const TAKES_VALUE = new Set(['only', 'max-age', 'baseline', 'sarif'])
 const flags = new Set()
 const values = new Map()
 const positional = []
@@ -53,7 +44,7 @@ if (flag('help') || flag('h')) {
       'usage: stalecheck [paths...] [options]',
       '',
       'checks:',
-      ...Object.entries(CHECKS).map(([name, c]) => `  ${name.padEnd(10)}${c.default ? 'on ' : 'off'}   ${DESCRIPTIONS[name]}`),
+      ...Object.entries(CHECKS).map(([name, c]) => `  ${name.padEnd(10)}${c.default ? 'on ' : 'off'}   ${c.short}`),
       '',
       'options:',
       '  --only a,b      run only these checks        --max-age <days>  dated fact limit (180)',
@@ -63,6 +54,7 @@ if (flag('help') || flag('h')) {
       '  --baseline <file>    fail only on findings that are not already in <file>;',
       '                       writes it, with everything found now, when it is not there',
       '  --update-baseline    rewrite it from this run, dropping what has been fixed',
+      '  --sarif <file>       also write SARIF 2.1.0, for github/codeql-action/upload-sarif',
       '',
     ].join('\n'),
   )
@@ -162,6 +154,7 @@ const quiet = flag('quiet')
 const warnOnly = flag('warn') || config.warn === true
 const baselinePath = value('baseline', config.baseline ?? null)
 const updateBaseline = flag('update-baseline')
+const sarifPath = value('sarif', config.sarif ?? null)
 
 // --- run --------------------------------------------------------------------------
 
@@ -264,4 +257,16 @@ if (asJson) {
 // Not process.exit(): it tears the process down before a large stdout write has flushed
 // to a pipe, which silently truncated the JSON for any consumer reading it — a CI job,
 // or evals/corpus.mjs. Setting the code lets Node exit once the write completes.
+// SARIF is written beside whatever else the run reports, so a CI job can annotate the
+// diff and still read the human output in its log.
+if (sarifPath) {
+  try {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    writeFileSync(resolve(root, sarifPath), JSON.stringify(toSarif(shown, { version: pkg.version }), null, 2) + '\n')
+    if (!asJson && !quiet) process.stdout.write(`wrote ${sarifPath}: ${shown.length} result${shown.length === 1 ? '' : 's'}\n`)
+  } catch (e) {
+    process.stderr.write(`stalecheck: could not write ${sarifPath}: ${e.message}\n`)
+  }
+}
+
 process.exitCode = warnOnly || !shown.length ? 0 : 1

@@ -139,6 +139,7 @@ stalecheck --max-age 90        # a fact older than 90 days is stale
 stalecheck --json              # machine-readable, for CI
 stalecheck --warn              # report everything, always exit 0
 stalecheck --baseline <file>   # fail only on findings that are not already in <file>
+stalecheck --sarif <file>      # also write SARIF 2.1.0, for GitHub code scanning
 ```
 
 Exit code is 1 when anything is found, so it drops into CI as it is:
@@ -146,6 +147,32 @@ Exit code is 1 when anything is found, so it drops into CI as it is:
 ```yaml
 - run: npx @allan_nava/stalecheck
 ```
+
+### On the pull request, not in a log
+
+Findings in a CI log are read once and scrolled past. SARIF puts them on the diff, beside
+the line that carries them:
+
+```yaml
+- run: npx @allan_nava/stalecheck --sarif stalecheck.sarif --baseline .stalecheck-baseline.json
+- uses: github/codeql-action/upload-sarif@v3
+  if: always()
+  with:
+    sarif_file: stalecheck.sarif
+    category: stalecheck
+```
+
+The job needs `security-events: write`. `if: always()` matters: the run exits 1 when it
+finds something, and without it the upload would be skipped exactly when there is
+something to show.
+
+Every result carries a fingerprint built from the check, the document and the subject, so
+GitHub treats a finding that has moved down a file as the one it already knows rather than
+as a new one. With a baseline in use, only the new findings are published — the backlog
+stays in the file where it belongs.
+
+This project's own CI uploads its own SARIF, which is the only way to know GitHub accepts
+the document rather than rendering nothing in silence.
 
 ### Adopting it on documentation that is already stale
 
@@ -197,7 +224,7 @@ Configuration is optional, in `.stalecheck.json` at the repository root:
 ## Verify
 
 ```bash
-npm test                              # 63 assertions
+npm test                              # 71 assertions
 npm run corpus -- ~/projects/*        # what it says about your own documentation
 node bin/stalecheck.mjs --help
 ```
