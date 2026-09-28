@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Allan-Nava/stalecheck/main/assets/logo.svg" width="72" height="72" alt="stalecheck">
+</p>
+
 # stalecheck
 
 [![docs](https://img.shields.io/badge/docs-allan--nava.github.io%2Fstalecheck-2f5d8a?labelColor=1b1a18)](https://allan-nava.github.io/stalecheck/)

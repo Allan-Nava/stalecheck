@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!-- Rendered to assets/social-preview.png at 1200x630 by headless Chrome:
+     npm run build:social
+     The card carries the one sentence the tool is about and the numbers behind it,
+     because a link with no card is a link nobody clicks. -->
+<html lang="en">
+<head><meta charset="utf-8">
+<style>
+  @font-face { font-family: x; src: local("Helvetica"); }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: 1200px; height: 630px; background: #141312; color: #e8e4dd;
+    font: 400 24px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    padding: 74px 80px; display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  /* A wash behind the mark, so the card is not a flat rectangle of text. */
+  body::after {
+    content: ""; position: absolute; right: -180px; top: -180px; width: 620px; height: 620px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(47,93,138,.30), transparent 68%);
+  }
+  .top { display: flex; align-items: center; gap: 22px; }
+  .name { font-size: 46px; font-weight: 700; letter-spacing: -.02em; }
+  .ver { color: #9a938a; font-size: 24px; letter-spacing: .01em; }
+  h1 { font-size: 62px; line-height: 1.12; font-weight: 700; letter-spacing: -.025em;  }
+  h1 em { font-style: normal; color: #7fb0dd; }
+  .stats { display: flex; gap: 58px; position: relative; z-index: 1; }
+  .n { font-size: 44px; font-weight: 700; letter-spacing: -.02em; }
+  .l { font-size: 19px; color: #9a938a; margin-top: 2px; }
+  .foot { color: #9a938a; font-size: 21px; }
+</style></head>
+<body>
+  <div class="top">
+    <svg viewBox="0 0 64 64" width="56" height="56"><g fill="none" stroke="#7fb0dd" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 33 L26 46 L34 37"/><path d="M41 29 L52 17"/></g></svg>
+    <span class="name">stalecheck</span>
+    <span class="ver">@allan_nava/stalecheck</span>
+  </div>
+
+  <h1>Is the documentation<br><em>still true?</em></h1>
+
+  <div class="stats">
+    <div><div class="n">639</div><div class="l">documents measured</div></div>
+    <div><div class="n">100%</div><div class="l">precision, 59 fixtures</div></div>
+    <div><div class="n">456 ms</div><div class="l">a 594-document sweep</div></div>
+    <div><div class="n">0</div><div class="l">dependencies</div></div>
+  </div>
+
+  <div class="foot">Dead links · renamed files · citations past the end · stale versions · facts nobody re-read</div>
+</body>
+</html>
