@@ -6,6 +6,20 @@ All notable changes to this project are documented here, in the format of
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-09-28
+
+### Fixed
+- The README told the reader `npm test` runs 47 assertions. It runs 50. A documentation
+  checker shipping a number that is not true is the defect it exists to find, so it goes
+  out on its own rather than waiting for the next change.
+- The generated page laid the scorecard out wrongly, which does not reach the package but
+  does reach anyone reading the docs: the sections were built into one HTML string, split
+  on newlines and the card spliced in at an index counted in sections, so it landed
+  partway through the first one — a heading with nothing under it, a table outside its
+  card, and the card placed before the section it belongs after. The README's badges were
+  also rendered into the opening paragraph beside the row the page builds from them.
+
+
 ## [0.1.2] — 2026-09-28
 
 Accuracy is measured now, not assumed. `evals/documents.jsonl` holds 57 labelled
@@ -87,7 +101,8 @@ documents in four repositories and reading what came back, not by taste.
 - `process.exit()` truncated a large JSON write to a pipe, which is how CI and the corpus
   runner both read it. The exit code is set instead, so Node flushes first.
 
-[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Allan-Nava/stalecheck/releases/tag/v0.1.0
