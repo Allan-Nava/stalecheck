@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-28T12:46:58.721Z",
+  "at": "2026-09-28T13:46:20.954Z",
   "node": "v23.3.0",
   "checks": [
     "paths",
@@ -11,13 +11,13 @@
   ],
   "totals": {
     "documents": 639,
-    "findings": 101,
-    "perDocument": 0.15805946791862285
+    "findings": 100,
+    "perDocument": 0.1564945226917058
   },
   "byCheck": {
     "versions": 2,
-    "anchors": 40,
-    "paths": 55,
+    "anchors": 42,
+    "paths": 52,
     "lines": 4
   },
   "repositories": [
@@ -46,10 +46,10 @@
     {
       "name": "a private infrastructure repository",
       "documents": 594,
-      "findings": 97,
+      "findings": 96,
       "byCheck": {
-        "anchors": 38,
-        "paths": 55,
+        "anchors": 40,
+        "paths": 52,
         "lines": 4
       }
     }

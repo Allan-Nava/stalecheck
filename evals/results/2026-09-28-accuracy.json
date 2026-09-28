@@ -1,0 +1,77 @@
+{
+  "at": "2026-09-28T13:46:19.883Z",
+  "node": "v23.3.0",
+  "fixtures": 59,
+  "summary": {
+    "paths": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "mentions": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "precision": null,
+      "recall": null,
+      "f1": null
+    },
+    "lines": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "anchors": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "scripts": {
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "versions": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "dated": {
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1
+    },
+    "programs": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "precision": null,
+      "recall": null,
+      "f1": null
+    }
+  },
+  "totals": {
+    "tp": 24,
+    "fp": 0,
+    "fn": 0
+  },
+  "misses": []
+}

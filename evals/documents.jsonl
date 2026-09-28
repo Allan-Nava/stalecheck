@@ -1,0 +1,59 @@
+{"name": "a dead link", "files": {"README.md": "See [the guide](docs/guide.md)."}, "expect": [{"check": "paths", "file": "README.md", "line": 1}]}
+{"name": "a live link", "files": {"README.md": "See [the guide](docs/guide.md).", "docs/guide.md": "# Guide\n"}, "expect": []}
+{"name": "a link relative to the document", "files": {"docs/a.md": "See [b](b.md).", "docs/b.md": "# B\n"}, "expect": []}
+{"name": "a link with no directory", "files": {"README.md": "See [b](b.md)."}, "expect": [{"check": "paths", "file": "README.md", "line": 1}]}
+{"name": "a file that exists under another root", "files": {"README.md": "See [g](docs/guide.md).", "sub/docs/guide.md": "# G\n"}, "expect": []}
+{"name": "a backticked path names a convention", "files": {"README.md": "Config lives in `.claude/settings.json`."}, "expect": []}
+{"name": "a generated tree nobody has built", "files": {"README.md": "Output lands in [the bundle](dist/app.js)."}, "expect": []}
+{"name": "an abbreviation in prose", "files": {"README.md": "Reports land in [a folder](logs-.../) per run."}, "expect": []}
+{"name": "a URL is not a path", "files": {"README.md": "See [docs](https://example.dev/a/b.md)."}, "expect": []}
+{"name": "an absolute path is a route", "files": {"README.md": "Published at [the post](/blog/2026/post.html)."}, "expect": []}
+{"name": "a changelog records the past", "files": {"CHANGELOG.md": "## [0.1.0]\n- removed [the script](scripts/old.sh)."}, "expect": []}
+{"name": "two dead links on one line", "files": {"README.md": "See [a](x.md) and [b](y.md)."}, "expect": [{"check": "paths", "file": "README.md", "line": 1}, {"check": "paths", "file": "README.md", "line": 1}]}
+{"name": "a line past the end", "files": {"README.md": "Fixed in [c](src/a.mjs:9).", "src/a.mjs": "one\ntwo\n"}, "expect": [{"check": "lines", "file": "README.md", "line": 1}]}
+{"name": "the line exactly past the end", "files": {"README.md": "Fixed in [c](src/a.mjs:3).", "src/a.mjs": "one\ntwo\n"}, "expect": [{"check": "lines", "file": "README.md", "line": 1}]}
+{"name": "the last real line", "files": {"README.md": "Fixed in [c](src/a.mjs:2).", "src/a.mjs": "one\ntwo\n"}, "expect": []}
+{"name": "no trailing newline, last line", "files": {"README.md": "Fixed in [c](src/a.mjs:2).", "src/a.mjs": "one\ntwo"}, "expect": []}
+{"name": "an empty file has no lines", "files": {"README.md": "Fixed in [c](src/a.mjs:1).", "src/a.mjs": ""}, "expect": [{"check": "lines", "file": "README.md", "line": 1}]}
+{"name": "a line citation to a missing file is a path problem", "files": {"README.md": "Fixed in [c](src/gone.mjs:9)."}, "expect": [{"check": "paths", "file": "README.md", "line": 1}]}
+{"name": "a renumbered section", "files": {"a.md": "See [the knee](b.md#5-the-knee).", "b.md": "### 7. The knee\n"}, "expect": [{"check": "anchors", "file": "a.md", "line": 1}]}
+{"name": "an anchor that resolves", "files": {"a.md": "See [the knee](b.md#7-the-knee).", "b.md": "### 7. The knee\n"}, "expect": []}
+{"name": "a same-document anchor that is missing", "files": {"a.md": "# T\n\nSee [below](#nowhere).\n\n## Somewhere\n"}, "expect": [{"check": "anchors", "file": "a.md", "line": 3}]}
+{"name": "a same-document anchor that resolves", "files": {"a.md": "# T\n\nSee [below](#somewhere).\n\n## Somewhere\n"}, "expect": []}
+{"name": "an em dash slugs to a double hyphen", "files": {"a.md": "See [auth](b.md#auth--signing-in).", "b.md": "## `auth` — signing in\n"}, "expect": []}
+{"name": "a heading with code and an arrow", "files": {"a.md": "See [d](b.md#5-delivery--the-rate-that-arrived).", "b.md": "### 5. `delivery` → the rate that arrived\n"}, "expect": []}
+{"name": "a heading inside a fence is not a heading", "files": {"a.md": "See [x](b.md#not-real).", "b.md": "# B\n\n```\n# Not real\n```\n"}, "expect": [{"check": "anchors", "file": "a.md", "line": 1}]}
+{"name": "an anchor on a file that is not markdown", "files": {"a.md": "See [x](script.sh#L10).", "script.sh": "echo hi\n"}, "expect": []}
+{"name": "a documented script that does not exist", "files": {"package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{\"test\":\"node --test\"}}", "README.md": "```bash\nnpm run build:site\n```\n"}, "expect": [{"check": "scripts", "file": "README.md", "line": 2}]}
+{"name": "a script that exists", "files": {"package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{\"test\":\"node --test\"}}", "README.md": "```bash\nnpm test\n```\n"}, "expect": []}
+{"name": "npm test with no test script", "files": {"package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{}}", "README.md": "```bash\nnpm test\n```\n"}, "expect": [{"check": "scripts", "file": "README.md", "line": 2}]}
+{"name": "a command outside a shell fence", "files": {"package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{}}", "README.md": "```js\nnpm run nope\n```\n"}, "expect": []}
+{"name": "a comment in a shell fence", "files": {"package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{}}", "README.md": "```bash\n# npm run nope\n```\n"}, "expect": []}
+{"name": "a script inside a compound command", "files": {"package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{\"lint\":\"x\"}}", "README.md": "```bash\nnpm run lint && npm run nope\n```\n"}, "expect": [{"check": "scripts", "file": "README.md", "line": 2}]}
+{"name": "a heredoc body is not a command", "files": {"package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{}}", "README.md": "```bash\ncat > f <<'EOF'\nnpm run nope\nEOF\n```\n"}, "expect": []}
+{"name": "a stale version", "files": {"package.json": "{\"name\":\"@a/b\",\"version\":\"2.0.0\"}", "README.md": "Install `@a/b@1.0.0`."}, "expect": [{"check": "versions", "file": "README.md", "line": 1}]}
+{"name": "the current version", "files": {"package.json": "{\"name\":\"@a/b\",\"version\":\"2.0.0\"}", "README.md": "Install `@a/b@2.0.0`."}, "expect": []}
+{"name": "a changelog names old versions on purpose", "files": {"package.json": "{\"name\":\"@a/b\",\"version\":\"2.0.0\"}", "CHANGELOG.md": "## [1.0.0]\n`@a/b@1.0.0` shipped."}, "expect": []}
+{"name": "another package's version is not ours", "files": {"package.json": "{\"name\":\"@a/b\",\"version\":\"2.0.0\"}", "README.md": "Needs `@other/pkg@1.0.0`."}, "expect": []}
+{"name": "an old dated fact", "files": {"README.md": "The API (example.com, read 2020-01-01) takes a token."}, "expect": [{"check": "dated", "file": "README.md", "line": 1}]}
+{"name": "a bare date is not a dated fact", "files": {"README.md": "The incident on 2020-01-01 took four hours."}, "expect": []}
+{"name": "verified is a dated fact too", "files": {"README.md": "Verified 2019-05-05 against the source."}, "expect": [{"check": "dated", "file": "README.md", "line": 1}]}
+{"name": "an Italian dated fact", "files": {"README.md": "Il comportamento (letto 2019-03-01) non e cambiato."}, "expect": [{"check": "dated", "file": "README.md", "line": 1}]}
+{"name": "several findings in one document", "files": {"package.json": "{\"name\":\"@a/b\",\"version\":\"2.0.0\",\"scripts\":{}}", "README.md": "See [x](gone.md).\n\nInstall `@a/b@1.0.0`.\n\nRead 2019-01-01.\n"}, "expect": [{"check": "paths", "file": "README.md", "line": 1}, {"check": "versions", "file": "README.md", "line": 3}, {"check": "dated", "file": "README.md", "line": 5}]}
+{"name": "a clean document", "files": {"README.md": "# Fine\n\nNothing here makes a claim about the repository.\n"}, "expect": []}
+{"name": "a link inside a fence is not a link", "files": {"README.md": "```\nSee [x](gone.md).\n```\n"}, "expect": []}
+{"name": "an unterminated fence swallows what follows", "files": {"README.md": "Text.\n\n```bash\nSee [x](gone.md).\n"}, "expect": []}
+{"name": "a link with a title attribute", "files": {"README.md": "See [g](docs/gone.md \"The guide\")."}, "expect": [{"check": "paths", "file": "README.md", "line": 1}]}
+{"name": "a link inside an inline code span", "files": {"README.md": "Write it as `[x](gone.md)` in the source."}, "expect": []}
+{"name": "a reference-style link that is dead", "files": {"README.md": "See [the guide][g].\n\n[g]: docs/gone.md\n"}, "expect": [{"check": "paths", "file": "README.md", "line": 3}]}
+{"name": "two headings with the same text", "files": {"a.md": "See [the second](b.md#notes-1).", "b.md": "## Notes\n\ntext\n\n## Notes\n"}, "expect": []}
+{"name": "a heading that is itself a link", "files": {"a.md": "See [it](b.md#the-title).", "b.md": "## [The title](https://example.dev)\n"}, "expect": []}
+{"name": "a heading with an emoji", "files": {"a.md": "See [start](b.md#-quick-start).", "b.md": "## 🚀 Quick start\n"}, "expect": []}
+{"name": "a percent-encoded space in a link", "files": {"README.md": "See [g](docs/my%20guide.md).", "docs/my guide.md": "# G\n"}, "expect": []}
+{"name": "a console fence with a prompt prefix", "files": {"package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{}}", "README.md": "```console\n$ npm run nope\n```\n"}, "expect": [{"check": "scripts", "file": "README.md", "line": 2}]}
+{"name": "a dated fact in the future", "files": {"README.md": "Scheduled, verified 2099-01-01 against the plan."}, "expect": []}
+{"name": "a nested fence", "files": {"README.md": "````md\n```bash\nnpm run nope\n```\n````\n", "package.json": "{\"name\":\"x\",\"version\":\"1.0.0\",\"scripts\":{}}"}, "expect": []}
+{"name": "a link to a directory that exists", "files": {"README.md": "See [the folder](docs/).", "docs/a.md": "# A\n"}, "expect": []}
+{"name": "an anchor with trailing punctuation in the heading", "files": {"a.md": "See [q](b.md#why-not).", "b.md": "## Why not?\n"}, "expect": []}
+{"name": "a code span delimited by two backticks", "files": {"README.md": "Write it as ``[x](gone.md)`` in the source."}, "expect": []}
+{"name": "a code span containing a backtick", "files": {"README.md": "The form is `` `[x](gone.md)` `` in Markdown."}, "expect": []}

@@ -61,6 +61,12 @@ jobs:
           git config --global user.name "ci"
           git config --global init.defaultBranch main
 
+      # Accuracy against the labelled fixtures. A false positive sends a maintainer to
+      # look at healthy documentation, so run.mjs exits non-zero on one; a missed
+      # finding only costs coverage and is reported.
+      - name: accuracy
+        run: node evals/run.mjs --misses
+
       # Not a threshold, a record: the numbers land in the job log, so a change that
       # makes a documentation sweep slower is visible in the diff of two runs.
       - name: latency

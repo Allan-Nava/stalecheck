@@ -6,6 +6,39 @@ All notable changes to this project are documented here, in the format of
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-09-28
+
+Accuracy is measured now, not assumed. `evals/documents.jsonl` holds 57 labelled
+fixtures, each built as a real git repository and read by the real CLI; `evals/run.mjs`
+scores them on the exact `(check, file, line)` they should produce, and CI fails on a
+false positive. The first draft of that set scored 100% and was worth nothing. Twelve
+boundary fixtures later it found four false positives, all of them real defects.
+
+### Fixed
+- **A link inside an inline code span was followed.** `` `[x](gone.md)` `` shows Markdown
+  source; it does not point anywhere. Inline code is blanked before links are matched.
+- **Repeated headings were not numbered.** GitHub anchors the second `## Notes` as
+  `#notes-1`; every link to one was called broken.
+- **The slug trimmed when GitHub does not.** GitHub strips a character and keeps the space
+  beside it, so `## 🚀 Quick start` anchors as `#-quick-start`. This cut both ways on real
+  documentation: it removed a false positive and uncovered two genuinely dead anchors,
+  where a document linked `#operations` at a heading GitHub anchors as `#-operations`.
+- **A percent-encoded path was never decoded**, so `docs/my%20guide.md` never matched
+  `docs/my guide.md`.
+- **A code span delimited by more than one backtick was not recognised.** CommonMark opens
+  a span with a run of backticks and closes it with the same run, which is how a span that
+  itself contains a backtick is written — and how this project's own README writes one.
+  Found by the dogfood run: the tool reported a dead link in its own documentation, and
+  was right that it had followed something it should not have.
+
+### Added
+- Reference-style links: `[label]: docs/guide.md` on a line of its own is where such a
+  link actually points, so it is what gets checked.
+- `evals/bench.mjs`, the latency benchmark, and an `evals` job in CI running both it and
+  the accuracy run. On a real 594-document tree a full sweep is **456 ms**, 0.69 ms per
+  document; `lines` is the dearest check, `dated` the cheapest.
+
+
 ## [0.1.1] — 2026-09-28
 
 ### Fixed
@@ -54,6 +87,7 @@ documents in four repositories and reading what came back, not by taste.
 - `process.exit()` truncated a large JSON write to a pipe, which is how CI and the corpus
   runner both read it. The exit code is set instead, so Node flushes first.
 
-[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Allan-Nava/stalecheck/releases/tag/v0.1.0

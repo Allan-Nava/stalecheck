@@ -56,8 +56,8 @@ Node 23.3, 2026-09-28, four repositories:
 | hookgate | 15 | 2 | 0.13 |
 | claimcheck | 3 | 0 | 0.00 |
 | crowdsim | 27 | 2 | 0.07 |
-| a 594-document infrastructure repo | 594 | 97 | 0.16 |
-| **total** | **639** | **101** | **0.16** |
+| a 594-document infrastructure repo | 594 | 96 | 0.16 |
+| **total** | **639** | **100** | **0.16** |
 
 The defaults were chosen from that corpus, not from taste. Three of them were decided by
 measurement against what the first draft did:
@@ -77,6 +77,35 @@ measurement against what the first draft did:
 Of the findings that survive, the ones worth the price: a config line cited at `:43` by
 five separate production runbooks when the file has 42 lines, and two documentation links
 pointing at sections that were renumbered.
+
+### Accuracy — `node evals/run.mjs`
+
+59 labelled fixtures in `evals/documents.jsonl`, each built as a real git repository and
+read by the real CLI, scored on the exact `(check, file, line)` it should produce:
+
+| | precision | recall |
+|---|---|---|
+| all six default checks | **100%** | **100%** |
+
+That table is the second draft, and the first one was worthless for the usual reason: it
+only held cases written by someone who knew the code. Twelve boundary fixtures later it
+found **four false positives**, every one a real defect:
+
+- a link shown *inside* an inline code span — `` `[x](gone.md)` `` — was followed as a link
+- GitHub numbers repeated headings, so the second `## Notes` is `#notes-1`; the slugger did not
+- GitHub does **not** trim after stripping characters, so `## 🚀 Quick start` is `#-quick-start`
+  with a leading hyphen; trimming called those links broken
+- a percent-encoded space in a link was never decoded
+
+A fifth arrived from the dogfood run, which checks this project's own documentation: a
+code span delimited by more than one backtick — the way you write a span that contains a
+backtick, and the way the paragraph above writes one — was not recognised, so the tool
+followed a link that was only ever being shown.
+
+The third one cut both ways on real documentation: it removed a false positive and
+uncovered two genuinely dead anchors, where a document linked `#operations` at a heading
+that GitHub actually anchors as `#-operations`. Reference-style links (`[label]: path`)
+are followed now too, which was the one thing the set could not find a way to score.
 
 ### Latency — `node evals/bench.mjs`
 
