@@ -1,6 +1,6 @@
 {
   "name": "@allan_nava/stalecheck",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Verifies that what the documentation says is still true: dead links, renamed files, line citations past the end, stale versions and facts dated long enough ago to be worth re-reading. Deterministic — no model, no network.",
   "type": "module",
   "bin": {
