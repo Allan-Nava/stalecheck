@@ -6,6 +6,16 @@ All notable changes to this project are documented here, in the format of
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-09-29
+
+### Fixed
+- The `--fix` summary said `1 had no single right answer and **were** left alone`. One
+  finding left alone was one. A tool whose argument is that documentation should say what
+  is true has its own output for documentation.
+- Inline code could not break, so a long token in it pushed a page wider than a 375px
+  phone. This reached the generated site rather than the package, and is fixed there too.
+
+
 ## [0.4.0] — 2026-09-28
 
 The last three items in the v0.2.0 milestone.
@@ -203,7 +213,8 @@ documents in four repositories and reading what came back, not by taste.
 - `process.exit()` truncated a large JSON write to a pipe, which is how CI and the corpus
   runner both read it. The exit code is set instead, so Node flushes first.
 
-[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Allan-Nava/stalecheck/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Allan-Nava/stalecheck/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Allan-Nava/stalecheck/compare/v0.1.3...v0.2.0
