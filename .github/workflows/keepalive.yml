@@ -1,0 +1,27 @@
+# GitHub disables a scheduled workflow after 60 days without a commit to the repository.
+# Once a month this re-enables, through the API, the scheduled workflows worth keeping —
+# itself included — which restarts that clock without a commit. No secret: the job's own
+# token with actions: write is enough. Add a workflow here when it gets a schedule.
+name: Keepalive
+
+on:
+  schedule:
+    - cron: "17 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-enable the scheduled workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          for wf in keepalive.yml release-drift.yml; do
+            gh api -X PUT "repos/$REPO/actions/workflows/$wf/enable"
+            echo "enabled $wf"
+          done
